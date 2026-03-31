@@ -1,26 +1,26 @@
-import gradio as gr
+from fastapi import FastAPI
+from pydantic import BaseModel
 from env import CloudEnv
-import random
+
+app = FastAPI()
 
 env = CloudEnv()
 
-def simulate(steps):
+# Request format
+class ActionInput(BaseModel):
+    action: int
+
+@app.post("/reset")
+def reset():
     state = env.reset()
-    output = []
+    return {"state": state}
 
-    for _ in range(steps):
-        action = random.choice([0,1,2])  # demo agent
-        state, reward, _, _ = env.step(action)
-        output.append(f"State: {state}, Reward: {round(reward,2)}")
-
-    return "\n".join(output)
-
-interface = gr.Interface(
-    fn=simulate,
-    inputs=gr.Slider(10, 100, value=50, label="Steps"),
-    outputs="text",
-    title="AI Cloud Auto-Scaling Environment",
-    description="Simulates scaling decisions with cost, latency, and CPU optimization."
-)
-
-interface.launch()
+@app.post("/step")
+def step(input: ActionInput):
+    state, reward, done, info = env.step(input.action)
+    return {
+        "state": state,
+        "reward": reward,
+        "done": done,
+        "info": info
+    }
