@@ -1,12 +1,27 @@
+from fastapi import FastAPI
+from pydantic import BaseModel
 from env import CloudEnv
-from agent import Agent
 
-env=CloudEnv()
-agent=Agent()
+app = FastAPI()
 
-state=env.reset()
-for episode in range(20):
-    action=agent.choose_option(state)
-    next_state,reward,done,_=env.step(action)
-    print(f"state:{state},action:{action},reward:{reward}")
-    state=next_state
+env = CloudEnv()
+
+class ActionInput(BaseModel):
+    action: int
+
+@app.post("/reset")
+async def reset():
+    state = env.reset()
+    return {
+        "observation": list(state)   # 🔥 FIX HERE
+    }
+
+@app.post("/step")
+async def step(input: ActionInput):
+    state, reward, done, info = env.step(input.action)
+    return {
+        "observation": list(state),  # 🔥 FIX HERE
+        "reward": float(reward),
+        "done": bool(done),
+        "info": info
+    }
